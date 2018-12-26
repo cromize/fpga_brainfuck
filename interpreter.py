@@ -12,8 +12,20 @@ class BF_intrp:
     self.addr_ptr = 0
     self.prog_ctr = 0
     self.memory = array.array("B", [0])
-    self.jmp_stack = []
     self.bytecode = bytecode
+
+  def loop_iter(self, body_start, body_end, forward):
+    # TODO: maybe make it find all occurrence and add, subtract instead of looping
+    found_count = 0 
+    while 1:
+      if self.bytecode[self.prog_ctr] == body_end:
+        found_count -= 1
+      elif self.bytecode[self.prog_ctr] == body_start:
+        found_count += 1
+      if not found_count:
+        return 
+      if forward: self.prog_ctr += 1
+      else: self.prog_ctr -= 1
 
   def process(self, op):
     if op == '+':
@@ -49,36 +61,11 @@ class BF_intrp:
     
     elif op == '[':
       if self.memory[self.addr_ptr] == 0:
-        base_ptr = self.prog_ctr
-        while 1:
-          if self.bytecode[base_ptr] == ']':
-            if len(self.jmp_stack) == 1:
-              self.prog_ctr = base_ptr
-              return
-            else:
-              self.jmp_stack.pop()
-              
-          elif self.bytecode[base_ptr] == '[': 
-            self.jmp_stack.append('[')
-
-          base_ptr += 1
+        self.loop_iter('[', ']', 1)
 
     elif op == ']':
       if self.memory[self.addr_ptr] != 0:
-        base_ptr = self.prog_ctr
-        while 1:
-          if self.bytecode[base_ptr] == '[':
-            if len(self.jmp_stack) == 1:
-              self.prog_ctr = base_ptr
-              self.jmp_stack.pop()
-              return
-            else:
-              self.jmp_stack.pop()
-              
-          elif self.bytecode[base_ptr] == ']': 
-            self.jmp_stack.append(']')
-
-          base_ptr -= 1
+        self.loop_iter(']', '[', 0)
 
   def mem_size(self):
     return len(self.memory)
@@ -101,7 +88,9 @@ if __name__ == "__main__":
   #test_bytecode = '+[+.]'
   hello_world = '++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.'
 
-  #intrp = BF_intrp(test_bytecode)
-  intrp = BF_intrp(hello_world)
-  intrp.execute()
+  # test 30000 cells
+  test = "++++[>++++++<-]>[>+++++>+++++++<<-]>>++++<[[>[[>>+<<-]<]>>>-]>-[>+>+<<-]>] +++++[>+++++++<<++>-]>.<<. "
 
+  intrp = BF_intrp(hello_world)
+  #intrp = BF_intrp(test)
+  intrp.execute()
